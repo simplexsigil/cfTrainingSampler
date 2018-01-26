@@ -40,8 +40,8 @@ from cflib.crazyflie.syncLogger import SyncLogger
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-URI = 'radio://0/80/2M'
-
+address = "//0/80/2M"
+URI = 'radio:' + address
 
 if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
@@ -56,24 +56,28 @@ if __name__ == '__main__':
     if len(available) == 0:
         print('No Crazyflies found, cannot run example')
     else:
-        lg_stab = LogConfig(name='Stabilizer', period_in_ms=5)
+        lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
         lg_stab.add_variable('stabilizer.roll', 'float')
         lg_stab.add_variable('stabilizer.pitch', 'float')
         lg_stab.add_variable('stabilizer.yaw', 'float')
 
         with SyncCrazyflie(URI) as scf:
 
-            print("Connected to: " + URI)
+            log_file = address.strip("/").replace("/","_") + "_roll_pitch_yaw.log"
 
-            with SyncLogger(scf, lg_stab) as logger:
-                endTime = time.time() + 10
+            with open(log_file, "w") as f:
 
-                for log_entry in logger:
-                    timestamp = log_entry[0]
-                    data = log_entry[1]
-                    logconf_name = log_entry[2]
+                with SyncLogger(scf, lg_stab) as logger:
+                    print("Start logging...")
+                    endTime = time.time() + 5
 
-                    print('[%d][%s]: %s' % (timestamp, logconf_name, data))
+                    for log_entry in logger:
+                        timestamp = log_entry[0]
+                        data = log_entry[1]
+                        logconf_name = log_entry[2]
 
-                    if time.time() > endTime:
-                        break
+                        f.write('[%d][%s]: %s\n' % (timestamp, logconf_name, data))
+
+                        if time.time() > endTime:
+                            print("Stop logging.")
+                            break
