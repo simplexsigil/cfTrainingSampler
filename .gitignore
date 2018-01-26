@@ -106,7 +106,6 @@ coverage.xml
 *.pot
 
 # Django stuff:
-*.log
 .static_storage/
 .media/
 local_settings.py
@@ -157,3 +156,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+
+# Not ignoring the collected flight logs of the crazyflies.
+/*.log
+/**/*.log
+!logdata/*.log
