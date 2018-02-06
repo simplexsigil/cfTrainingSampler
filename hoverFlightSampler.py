@@ -42,7 +42,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-address = "//0/80/2M"
+address = "//0/88/250K"
 URI = 'radio:' + address
 
 log_base_path = "logdata/"
@@ -106,49 +106,57 @@ def main():
                     cf.param.set_value('kalman.resetEstimation', '0')
                     time.sleep(2)
 
-                    for y in range(16):
+                    for y in range(10):
                         cf.commander.send_hover_setpoint(0, 0, 0, y / 20)
                         time.sleep(0.1)
 
-                    for _ in range(30):
-                        cf.commander.send_hover_setpoint(0, 0, 0, 0.8)
+
+                    log_start = logger.qsize()
+
+                    for i in range(50):
+                        print_message("Going " + str(i))
+                        cf.commander.send_hover_setpoint(0, 0, 0, 0.3)
                         time.sleep(0.1)
 
-                    print_message("Start logging...")
-                    log_count = 0
+                    log_end = logger.qsize()
+                    log_count = log_end - log_start 
+                    
 
-                    for _ in range(70):
-                        cf.commander.send_hover_setpoint(0, 0, 0, 0.8)
-                        log_count += write_out_log(logger, f)
+                    print_message("Start:{}, end:{}".format(log_start, log_end))
+                    print_message("To log {} lines.".format(log_end-log_start+1))
+
+                    for _ in range(10):
+                        cf.commander.send_hover_setpoint(0, 0, 0, 0.2)
                         time.sleep(0.1)
 
-                    print_message("Stopped logging.")
-                    print_message("Logged {} lines.".format(log_count))
-
-                    for _ in range(30):
-                        cf.commander.send_hover_setpoint(0, 0, 0, 0.8)
-
-                        time.sleep(0.1)
-
-                    for y in range(8):
-                        cf.commander.send_hover_setpoint(0, 0, 0, (8 - y) / 10)
-                        time.sleep(0.1)
-
-                    cf.commander.send_stop_setpoint()
+                    cf.commander.send_hover_setpoint(0, 0, 0, 0.1)
+                    time.sleep(0.2)
+                    cf.commander.send_stop_setpoint()       #land
+                    time.sleep(2) 
 
 
-def write_out_log(logger, file):
+                    print_message("Landed, start logging...")
+                    log_count = write_out_log(logger, f, log_start, log_end)
+
+                    print_message("Logged {} lines".format(log_count))
+
+
+def write_out_log(logger, file, start, end):
+    count = 0
     log_count = 0
-
     try:
         for log_entry in logger:
-            timestamp = log_entry[0]
-            data = log_entry[1]
-            log_conf_name = log_entry[2]
+            count +=1
+            if (count >= end):
+                break
 
-            file.write('\"%d\":%s\n' % (timestamp, data))
+            if (count >= start):
+                log_count += 1
+                timestamp = log_entry[0]
+                data = log_entry[1]
+                log_conf_name = log_entry[2]
+                file.write('\"%d\":%s\n' % (timestamp, data))
 
-            log_count += 1
     except queue.Empty:
         pass
 
