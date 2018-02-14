@@ -42,14 +42,28 @@ from cflib.crazyflie.syncLogger import SyncLogger
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-address = "//0/88/250K"
+address = "//0/80/2M"
 URI = 'radio:' + address
 
 log_base_path = "logdata/"
 log_file_prefix = "CF_{address}_{time}_".format(address=address.strip("/").replace("/","-"), time=strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()))
 
-log_period = 20
 small_log = False
+
+height = 1
+log_time = 50
+maneuver_time = 1
+balance_time = 2
+
+log_intervall = 20
+time_step = 0.1
+
+maneuver_iterations = int(maneuver_time / time_step)
+maneuver_step = height / maneuver_iterations
+balance_iterations = int(balance_time / time_step)
+log_iterations = int(log_time / time_step)
+
+
 
 def log_file_name(config):
     return log_base_path + log_file_prefix + config.name + ".log"
@@ -69,45 +83,34 @@ def main():
     else:
 
         if (small_log):
-            logConfig_stab = LogConfig(name='Stabilizer', period_in_ms=log_period)
+            logConfig_stab = LogConfig(name='Stabilizer', period_in_ms=log_intervall)
 
             logConfig_stab.add_variable('stabilizer.roll', 'float')
             logConfig_stab.add_variable('stabilizer.pitch', 'float')
             logConfig_stab.add_variable('stabilizer.yaw', 'float')
             logConfig_stab.add_variable('stabilizer.thrust', 'float')
 
-            logConfig_state = LogConfig(name='State', period_in_ms=log_period)
+            logConfig_state = LogConfig(name='State', period_in_ms=log_intervall)
             logConfig_state.add_variable('stateEstimate.x', 'float')
             logConfig_state.add_variable('stateEstimate.y', 'float')
             logConfig_state.add_variable('stateEstimate.z', 'float')
 
-            logConfig_target = LogConfig(name='ControlTarget', period_in_ms=log_period)
+            logConfig_target = LogConfig(name='ControlTarget', period_in_ms=log_intervall)
             logConfig_target.add_variable('ctrltarget.roll', 'float')
             logConfig_target.add_variable('ctrltarget.pitch', 'float')
             logConfig_target.add_variable('ctrltarget.yaw', 'float')
 
-            logConfig_mpow = LogConfig(name='MotorPower', period_in_ms=log_period)
+            logConfig_mpow = LogConfig(name='MotorPower', period_in_ms=log_intervall)
             logConfig_mpow.add_variable('motor.m1', 'int32_t')
             logConfig_mpow.add_variable('motor.m2', 'int32_t')
             logConfig_mpow.add_variable('motor.m3', 'int32_t')
             logConfig_mpow.add_variable('motor.m4', 'int32_t')  
 
-        logConfig_all = LogConfig(name='all', period_in_ms=log_period)
-        """
-        logConfig_all.add_variable('stabilizer.roll', 'float')
-        logConfig_all.add_variable('stabilizer.pitch', 'float')
-        logConfig_all.add_variable('stabilizer.yaw', 'float')
-        """
-        logConfig_all.add_variable('stabilizer.thrust', 'float')
-        """
+        logConfig_all = LogConfig(name='PositionLog', period_in_ms=log_intervall)
         logConfig_all.add_variable('stateEstimate.x', 'float')
         logConfig_all.add_variable('stateEstimate.y', 'float')
         logConfig_all.add_variable('stateEstimate.z', 'float')
-        """
-        logConfig_all.add_variable('motor.m1', 'int32_t')
-        logConfig_all.add_variable('motor.m2', 'int32_t')
-        logConfig_all.add_variable('motor.m3', 'int32_t')
-        logConfig_all.add_variable('motor.m4', 'int32_t')
+
 
         with SyncCrazyflie(URI) as scf:
             cf = scf.cf
@@ -130,34 +133,40 @@ def main():
             cf.param.set_value('kalman.resetEstimation', '0')
             time.sleep(2)
 
-            for y in range(10):
-                cf.commander.send_hover_setpoint(0, 0, 0, y / 20)
-                time.sleep(0.1)
+            for y in range(maneuver_iterations):
+                cf.commander.send_hover_setpoint(0, 0, 0, y * maneuver_step)
+                time.sleep(time_step)
 
-            log_start = logger_all.qsize()
+            for i in range(balance_iterations):
+                print_message("Balancing out " + str(i))
+                cf.commander.send_hover_setpoint(0, 0, 0, height)
+                time.sleep(time_step)
 
-            for i in range(50):
-                print_message("Going " + str(i))
-                cf.commander.send_hover_setpoint(0, 0, 0, 0.3)
-                time.sleep(0.1)
+            log_start = logger_all._queue.qsize()
 
-            log_end = logger_all.qsize()
+            for i in range(log_iterations):
+                print_message("Logging " + str(i))
+                cf.commander.send_hover_setpoint(0, 0, 0, height)
+                time.sleep(time_step)
+
+            log_end = logger_all._queue.qsize()
             log_count = log_end - log_start 
                     
 
             print_message("Start:{}, end:{}".format(log_start, log_end))
             print_message("To log {} lines.".format(log_end-log_start+1))
 
-            for _ in range(10):
-                cf.commander.send_hover_setpoint(0, 0, 0, 0.2)
-                time.sleep(0.1)
+            for y in range(maneuver_iterations - 1):
+                cf.commander.send_hover_setpoint(0, 0, 0, height - (y * maneuver_step))
+                time.sleep(time_step)
 
             cf.commander.send_hover_setpoint(0, 0, 0, 0.1)
-            time.sleep(0.2)
+            time.sleep(time_step)
+            time.sleep(time_step)
             cf.commander.send_stop_setpoint()       #land
             time.sleep(1.5) 
 
-            print_message("Landed, start logging...")
+            print_message("Landed, writing out log...")
             
             
             if (small_log):
@@ -184,7 +193,7 @@ def main():
             with open(log_file_name(logConfig_all), "w") as f:
                 log_count = write_out_log(logger_all, f, log_start, log_end)
             logger_all.disconnect()
-            print_message("Done logging")
+            print_message("Done logging.")
 
 
 def write_out_log(logger, file, start, end):
