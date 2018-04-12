@@ -1,8 +1,7 @@
 # Crazyflie Training Sampler
 This repository contains python scripts to control the crazyflie via computer and sample training data.
 
-For the general project, please also see our documentation repository at:
-https://github.com/simplexsigil/crazyflie-documents
+For more information about our project, please have a look at our documentation repository [crazyflie-documents](https://github.com/simplexsigil/crazyflie-documents).
 
 ## cflib based scripts
 This folder contains python scripts which use cflib (Bitcrazes library for controlling the crazyflie) directly in order to send commands to the crazyflie.
