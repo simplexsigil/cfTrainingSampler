@@ -42,7 +42,8 @@ from cflib.crazyflie.syncLogger import SyncLogger
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-address = "//0/88/250K"
+#address = "//0/88/250K"
+address = "//0/10/2M"
 URI = 'radio:' + address
 
 log_base_path = "logdata/"

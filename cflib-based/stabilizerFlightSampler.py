@@ -43,7 +43,7 @@ from cflib.crazyflie.console import Console
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-address = "//0/80/2M"
+address = "//0/10/2M"
 URI = 'radio:' + address
 
 log_base_path = "logdata/"
@@ -106,6 +106,7 @@ def main():
 
                     cf.param.set_value('kalman.resetEstimation', '1')
                     time.sleep(0.1)
+
                     cf.param.set_value('kalman.resetEstimation', '0')
                     time.sleep(2)
 
