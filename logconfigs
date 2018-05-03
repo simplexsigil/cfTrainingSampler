@@ -1,0 +1,30 @@
+5
+
+Stabilizer 20 4
+stabilizer.roll	float
+stabilizer.pitch float
+stabilizer.yaw float
+stabilizer.thrust float
+
+Acceleration 20 3
+acc.x	float
+acc.y 	float
+acc.z 	float
+
+ControllTarget 20 3
+ctrltarget.roll	float
+ctrltarget.pitch float
+ctrltarget.yaw float
+
+State 20 3
+stateEstimate.x	float
+stateEstimate.y	float
+stateEstimate.z	float
+
+Controller 20 6
+controller.roll 	float
+controller.pitch 	float
+controller.yaw 		float
+controller.rollRate	float
+controller.pitchRate	float
+controller.yawRate	float

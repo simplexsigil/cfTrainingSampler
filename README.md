@@ -12,9 +12,11 @@ Please note, that there can only be one simultaneous connection to a crazyflie, 
 This folder contains python scripts which work with ZMQ, a publish/subribe like technology. Bitcraze has provided a wrapper around the cflib which can be used to control the crazyflie via zmq messages.
 The advantage is, that multiple nodes can connect to the cfzmq node (the wrapper around cflib) and control the crazyflie or exchange data in a loosely coupled way.
 
-
 Testing the cfzmq server, we found that it does not support flying the crazyflie in hovermode, we therefore forked the repository containing the cfzmq server and added some lines to enable hovermode control via ZMQ:
 https://github.com/simplexsigil/crazyflie-clients-python
+
+## Installing ZMQ
+Just run the script setup-zmq.sh
 
 ### zmq-node-joystick-xboxone
 This zmq node detects input devices and is able to translate and send joystick commands to cfzmq in order to control the crazyflie.
