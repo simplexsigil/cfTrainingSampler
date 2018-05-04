@@ -17,6 +17,12 @@ https://github.com/simplexsigil/crazyflie-clients-python
 
 ## Installing ZMQ
 Just run the script setup-zmq.sh
+For python: sudo pythom -m pip install zmq
+
+## ZMQ as input method for the python client 
+Enable by setting "enable_zmq_input": true in the config file, by default located at /home/user/.config/cfclient/config.json
+Start the client, choose Input device = ZMQ@tcp:127.0.0.1:1122
+For example use, refer to the test scripts in zmq-based/test
 
 ### zmq-node-joystick-xboxone
 This zmq node detects input devices and is able to translate and send joystick commands to cfzmq in order to control the crazyflie.
