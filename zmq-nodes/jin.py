@@ -98,6 +98,7 @@ class ZMQController(threading.Thread):
             ctrl_conn.send_json(shared_cmd)
 
             if tick % 10 == 0:
+                print("\033[2K", end='')
                 print("\r  \rSent: " + str(shared_cmd), end='')
 
     def loop_cmd_sending(self, ctrl_conn):
@@ -182,9 +183,11 @@ def main():
         print(device.fn, device.name, device.phys)
 
     if len(devices) is 0:
+        print("No input device found. Exiting.")
         sys.exit(1)
 
     if len(devices) is 1:
+        print("Found only one device. Using it as default.")
         device_idx = 0
 
     if len(devices) > 1:
