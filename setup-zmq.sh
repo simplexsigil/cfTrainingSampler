@@ -12,7 +12,7 @@ sudo apt-get update && \
 sudo apt-get install -y libtool pkg-config build-essential autoconf automake uuid-dev
 
 # Create make file
-cd zeromq-4.2.2
+cd zeromq-4.2.3
 ./configure
 
 # Build and install(root permission only)
