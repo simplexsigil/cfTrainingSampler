@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-# Origin: crazyflie-python-client/examples/zmqsrvtest.py
 
-"""
-ZMQ server test application. Use CTRL-C to end the application.
-NOTE! If connected to a Crazyflie this will power on the motors!
-"""
+# ZMQ server test application. Use CTRL-C to end the application.
+
+# NOTE! If connected to a Crazyflie this will power on the motors!
 
 from __future__ import print_function
 
@@ -18,7 +15,6 @@ try:
 except ImportError as e:
     raise Exception("ZMQ library probably not installed ({})".format(e))
 
-print("Started script.\n")
 
 class _LogThread(Thread):
 
@@ -76,9 +72,9 @@ class _CtrlThread(Thread):
         self._thrust_step = 100
         self._cmd = {
             "version": 1,
-            "roll": 1.0,
-            "pitch": 1.0,
-            "yaw": 1.0,
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 0.0,
             "thrust": 0.0
         }
 
@@ -92,12 +88,12 @@ class _CtrlThread(Thread):
                 self._thrust_step *= -1
             self._cmd["thrust"] = self._thrust
             self._socket.send_json(self._cmd)
-            print("Sent: " + str(self._cmd))
+
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 SRV_ADDR = "tcp://127.0.0.1"
-CF_URI = "radio://0/80/2M"
+CF_URI = "radio://0/10/250K"
 
 context = zmq.Context()
 client_conn = context.socket(zmq.REQ)
@@ -165,6 +161,21 @@ if resp["status"] != 0:
 print("done!")
 
 # Do logging
+print("Loggable variables")
+for group in resp["log"]:
+    print("\t{}".format(group))
+    for name in resp["log"][group]:
+        print("\t  {} ({})".format(name,
+                                   resp["log"][group][name]["type"]))
+
+print("Parameter variables")
+for group in resp["param"]:
+    print("\t{}".format(group))
+    for name in resp["param"][group]:
+        print("\t  {} ({}, {})= {}".format(
+            name, resp["param"][group][name]["type"],
+            resp["param"][group][name]["access"],
+            resp["param"][group][name]["value"]))
 
 log_cmd = {
     "version": 1,
@@ -215,6 +226,22 @@ if resp["status"] == 0:
 else:
     print("fail! {}".format(resp["msg"]))
 
+param_cmd = {
+    "version": 1,
+    "cmd": "param",
+    "name": "flightctrl.xmode",
+    "value": True
+}
+
+print("Setting param {} to {}...".format(param_cmd["name"],
+                                         param_cmd["value"]), end=' ')
+client_conn.send_json(param_cmd)
+resp = client_conn.recv_json()
+if resp["status"] == 0:
+    print("done!")
+else:
+    print("fail! {}".format(resp["msg"]))
+
 
 # Start sending control commands
 ctrl = _CtrlThread(ctrl_conn)
@@ -223,4 +250,61 @@ ctrl.start()
 # Wait a bit, then stop the logging
 time.sleep(5)
 
-print("Reached end of script")
+log_cmd = {
+    "version": 1,
+    "cmd": "log",
+    "action": "stop",
+    "name": "No name",
+}
+print("Stopping logging {} ...".format(log_cmd["name"]), end=' ')
+client_conn.send_json(log_cmd)
+resp = client_conn.recv_json()
+if resp["status"] == 0:
+    print("done!")
+else:
+    print("fail! {}".format(resp["msg"]))
+
+log_cmd = {
+    "version": 1,
+    "cmd": "log",
+    "action": "stop",
+    "name": "Test log block",
+}
+print("Stopping logging {} ...".format(log_cmd["name"]), end=' ')
+client_conn.send_json(log_cmd)
+resp = client_conn.recv_json()
+if resp["status"] == 0:
+    print("done!")
+else:
+    print("fail!")
+
+log_cmd = {
+    "version": 1,
+    "cmd": "log",
+    "action": "delete",
+    "name": "Test log block",
+}
+print("Deleting logging {} ...".format(log_cmd["name"]), end=' ')
+client_conn.send_json(log_cmd)
+resp = client_conn.recv_json()
+if resp["status"] == 0:
+    print("done!")
+else:
+    print("fail!")
+
+
+# Wait a bit, then disconnect
+time.sleep(5)
+
+connect_cmd = {
+    "version": 1,
+    "cmd": "disconnect",
+    "uri": "{}".format(CF_URI)
+}
+print("Disconnecting from {} ...".format(connect_cmd["uri"]), end=' ')
+client_conn.send_json(connect_cmd)
+resp = client_conn.recv_json()
+if resp["status"] != 0:
+    print("fail! {}".format(resp["msg"]))
+    sys.exit(1)
+print("done!")
