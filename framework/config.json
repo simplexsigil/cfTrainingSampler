@@ -1,0 +1,8 @@
+{
+    "zmq": {
+        "url": "tcp://localhost"
+    },
+    "crazyFly": {
+        "url": "radio://0/80/2M"
+    }
+}
