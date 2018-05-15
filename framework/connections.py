@@ -13,6 +13,7 @@ class ZmqConnection:
     def __init__(self, zmqContext, zmqServerAddress, zmqType, port):
         self.context = zmqContext
         self.connection = self.context.socket(zmqType )
+        self.port = port
         address = zmqServerAddress + ":" + str(port)
         print("Connecting to " + address)
         self.lock = threading.Lock()
@@ -23,6 +24,9 @@ class ZmqConnection:
     """
     def sendCommand(self, json):
         raise Exception("Send command needs to be overwritten in sub classes of zmqconnection")
+    
+    def getPort(self):
+        return self.port
 
     def disconnect(self):
         with self.lock:

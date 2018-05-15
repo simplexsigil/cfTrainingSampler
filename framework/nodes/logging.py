@@ -53,25 +53,12 @@ class LoggingNode(threading.Thread):
             print("Started logging....")
             self.log = True
             
-    def stopLogging(self):
+    def stop(self):
         self.log = False
 
     def _log(self):
        while self.log:
-            print("Waiting for next logging message")
             log = self.loggingConn.receiveData()
-            print("Received logging message!")
-            if log["event"] == "data":
-                print(log)
-            if log["event"] == "created":
-                print("Created block {}".format(log["name"]))
-            if log["event"] == "started":
-                print("Started block {}".format(log["name"]))
-            if log["event"] == "stopped":
-                print("Stopped block {}".format(log["name"]))
-            if log["event"] == "deleted":
-                print("Deleted block {}".format(log["name"]))
-
             # publish to zmq
             self.loggingPublisher.publish(log)
 
@@ -80,13 +67,12 @@ class LoggingNode(threading.Thread):
         self._startLogging()
         self._log()
 
-from connections import ZmqConnection
-class LoggingZmqPublisher(ZmqConnection):
+from host import ZmqHost
+class LoggingZmqPublisher(ZmqHost):
 
     def __init__(self, zmqContext, zmqServerAddress, port):
         super().__init__(zmqContext, zmqServerAddress, zmq.PUB, port)
         print("Logging Publisher Connection established on " + zmqServerAddress + ":" + str(port))
 
     def publish(self, log):
-        print("Publishing " + str(log) + " to zmq logging endpoint.")
         self.connection.send_json(log)

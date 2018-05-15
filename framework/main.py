@@ -39,3 +39,17 @@ from nodes.logging import LoggingZmqPublisher, LoggingNode
 loggingPublisher = LoggingZmqPublisher(zmqContext, zmqAddress, config["logging"]["zmq"]["port"])
 loggingNode = LoggingNode(clientConn, loggingConn, config["logging"]["variables"], config["logging"]["name"], loggingPublisher)
 loggingNode.start()
+
+from nodes.loggingListener import LoggingListenerNode
+from connections import ZmqSubscribeConnection
+loggingListener = ZmqSubscribeConnection(zmqContext, zmqAddress, loggingPublisher.getPort())
+listenerNode = LoggingListenerNode(loggingListener)
+listenerNode.start()
+
+# wait a couple seconds before terminating
+sleep(5)
+loggingNode.stop()
+listenerNode.stop()
+
+loggingNode.join()
+listenerNode.join()
