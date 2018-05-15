@@ -3,6 +3,16 @@
         "url": "tcp://localhost"
     },
     "crazyFly": {
-        "url": "radio://0/80/2M"
+        "url": "radio://0/85/2M"
+    },
+    "logging": {
+        "variables": [
+            "pm.vbat",
+            "stabilizer.roll"
+        ],
+        "name": "LoggingConfig",
+        "zmq": {
+            "port": 3000
+        }
     }
 }

@@ -1,5 +1,7 @@
 import zmq
 import threading
+import time
+
 CLIENT_PORT = 2000
 LOGGING_PORT = 2001
 PARAM_PORT = 2002
@@ -8,10 +10,9 @@ CONTROL_PORT = 2004
 
 class ZmqConnection:
 
-    def __init__(self, zmqServerAddress, zmqType, port):
-        self.context = zmq.Context()
+    def __init__(self, zmqContext, zmqServerAddress, zmqType, port):
+        self.context = zmqContext
         self.connection = self.context.socket(zmqType )
-
         address = zmqServerAddress + ":" + str(port)
         print("Connecting to " + address)
         self.lock = threading.Lock()
@@ -29,31 +30,26 @@ class ZmqConnection:
 
 class ZmqSubscribeConnection(ZmqConnection):
     
-    def __init__(self, zmqServerAddress, port):
-        super().__init__(zmqServerAddress, zmq.SUB, port)
+    def __init__(self, zmqContext, zmqServerAddress, port):
+        super().__init__(zmqContext, zmqServerAddress, zmq.SUB, port)
+        self.connection.setsockopt_string(zmq.SUBSCRIBE, u"")
+
 
     def sendCommand(self, json):
         raise Exception("Can't send message to zmq.SUB connection!");
 
-    """
-        @param shouldContinueFunc: () => bool
-        @param onData: (data) => void
-    """
-    def listen(self, shouldContinueFunc, onData):
-        while shouldContinueFunc():
-            # TODO: check timeout?
-            package = self.connection.recv_json()
-            onData(package)
+    def receiveData(self):
+        return self.connection.recv_json()
 
 
 class ClientConnection(ZmqConnection):
 
-    def __init__(self, zmqServerAddress, crazyFlyAddress):
-        super().__init__(zmqServerAddress, zmq.REQ, CLIENT_PORT)
+    def __init__(self, zmqContext, zmqServerAddress, crazyFlyAddress):
+        super().__init__(zmqContext, zmqServerAddress, zmq.REQ, CLIENT_PORT)
         self.crazyFlyAddress = crazyFlyAddress
         print("Controller connection established.\n")
 
-    def connectToCF(self, cfUrl):
+    def connectToCF(self):
         connect_cmd = {
             "version": 1,
             "cmd": "connect",
@@ -63,32 +59,36 @@ class ClientConnection(ZmqConnection):
         return self.sendCommand(connect_cmd)
 
 
-    def disconnectFromCF(sefl, cfUrl):
+    def disconnectFromCF(self):
         disconnect_cmd = {
             "version": 1,
             "cmd": "disconnect",
-            "uri": "{}".format(self.crazyflie_uri)
+            "uri": "{}".format(self.crazyFlyAddress)
         }
 
-        print("Disconnecting from crazy fly at " + connect_cmd["uri"])
+        print("Disconnecting from crazy fly at " + disconnect_cmd["uri"])
         return self.sendCommand(disconnect_cmd)
 
     def sendCommand(self, json):
         with self.lock:
+            print("Sending command: " + str(json))
             self.connection.send_json(json)
-            return self.connection.recv_json()
+            print("Send command! Waiting for receive!")
+            response = self.connection.recv_json()
+            print("Received response!")
+            return response
 
 class LoggingConnection(ZmqSubscribeConnection): 
 
-    def __init__(self, zmqServerAddress):
-        super().__init__(zmqServerAddress, LOGGING_PORT)
+    def __init__(self, zmqContext, zmqServerAddress):
+        super().__init__(zmqContext, zmqServerAddress, LOGGING_PORT)
         print("Connected to logging server\n")
 
 
 class ParamConnection(ZmqSubscribeConnection):
     
-    def __init__(self, zmqServerAddress):
-        super().__init__(zmqServerAddress, PARAM_PORT)
+    def __init__(self, zmqContext, zmqServerAddress):
+        super().__init__(zmqContext, zmqServerAddress, PARAM_PORT)
         print("Param Connection established.\n")
 
     def sendCommand(self, json):
@@ -98,16 +98,16 @@ class ParamConnection(ZmqSubscribeConnection):
 # TODO logging library => levels from config filter by tags?
 class ConnConnection(ZmqSubscribeConnection):
     
-    def __init__(self, zmqServerAddress):
-        super().__init__(zmqServerAddress, CONN_PORT)
+    def __init__(self, zmqContext, zmqServerAddress):
+        super().__init__(zmqContext, zmqServerAddress, CONN_PORT)
         print("ConnConnection established.\n")
 
     def sendCommand(self, json):
         raise Exception("Can't send message to zmq.SUB connection!");
 
 class ControlConnection(ZmqConnection) :
-    def __init__(self, zmqServerAddress):
-        super().__init__(zmqServerAddress, zmq.PUSH, CONTROL_PORT)
+    def __init__(self, zmqContext, zmqServerAddress):
+        super().__init__(zmqContext, zmqServerAddress, zmq.PUSH, CONTROL_PORT)
         print("Control Connection established.")
 
     def unlockCF(self): 
@@ -119,12 +119,14 @@ class ControlConnection(ZmqConnection) :
             "thrust": 0
         }
 
-        with lock:
+        with self.lock:
             print("Sending thrust unlocking commands.")
             for _ in range(0, 10):
+                print("Unlock Command: " + str(_))
                 time.sleep(0.01)
                 self.sendCommand(thrust_unlock)
-            print("Send unlock commands.")
+                print("Send command!")
+            print("Send unlock commands complete.")
 
     def sendCommand(self, json):
         with self.lock:
