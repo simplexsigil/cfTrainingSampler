@@ -1,3 +1,10 @@
+#
+#   Example script for starting a logging node & a listener
+#
+#   pass logging as first arg to receive log messages from zmq
+#   pass print_log as first arg to print the logs (needs logging in a separate process)
+#
+#
 from config import config
 from time import sleep
 import zmq
@@ -32,24 +39,10 @@ else:
 sleep(0.3)
 #controlConn.unlockCF()
 
-
+loggingPort = config["logging"]["zmq"]["port"]
 
 # Configure Logging Node
 from nodes.logging import LoggingZmqPublisher, LoggingNode
-loggingPublisher = LoggingZmqPublisher(zmqContext, zmqAddress, config["logging"]["zmq"]["port"])
+loggingPublisher = LoggingZmqPublisher(zmqContext, zmqAddress, loggingPort)
 loggingNode = LoggingNode(clientConn, loggingConn, config["logging"]["variables"], config["logging"]["name"], loggingPublisher)
 loggingNode.start()
-
-from nodes.loggingListener import LoggingListenerNode
-from connections import ZmqSubscribeConnection
-loggingListener = ZmqSubscribeConnection(zmqContext, zmqAddress, loggingPublisher.getPort())
-listenerNode = LoggingListenerNode(loggingListener)
-listenerNode.start()
-
-# wait a couple seconds before terminating
-sleep(5)
-loggingNode.stop()
-listenerNode.stop()
-
-loggingNode.join()
-listenerNode.join()
