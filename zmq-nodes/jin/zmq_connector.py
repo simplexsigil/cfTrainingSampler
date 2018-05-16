@@ -1,55 +1,7 @@
-import evdev
-import sys
-import time
 import threading
 import zmq
-
-from evdev import InputDevice, categorize, ecodes
-
-# The address of the cfzmq server to connect to.
-SRV_ADDR = "tcp://127.0.0.1"
-
-# The address of the crazyflie we connect to.
-CF_URI = "radio://0/80/2M"
-
-# Limits for control values which make flying for a human pilot easier.
-max_pitch_deg = 30
-max_roll_deg = 30
-max_yaw_rate_deg = 180
-max_thrust = 0xFFFF
-
-# Limits in hover mode.
-max_xv = 1
-max_yv = 1
-max_z = 3
-
-# These are cut-off values which eliminate jitter from the controller input when sending zero commands.
-cut_off_roll = 5
-cut_off_pitch = 5
-cut_off_yaw = 20
-
-cut_off_xv = 0.1
-cut_off_yv = 0.1
-
-# For synchronization between joystick input thread and and zmq control sender thread.
-shared_command_lock = threading.Lock()
-
-# This is the shared control command which is read from input device and then sent via zmq. There is no queue since we
-# only send the most recent command.
-shared_cmd = {
-    "version": 1,
-    "roll": 0,
-    "pitch": 0,
-    "yaw": 0,
-    "thrust": 0,
-    "hovermode": False,
-    "xvel": 0,
-    "yvel": 0,
-    "z": 0
-}
-
-# Frequency of control command. Should be about 100 hz.
-command_frequency = 1 / 0.01
+import time
+import config as cnf
 
 
 class ZMQControlConnector(threading.Thread):
@@ -57,14 +9,13 @@ class ZMQControlConnector(threading.Thread):
     close the connection after use.
     """
 
-    def __init__(self, server_address, crazyflie_uri):
+    def __init__(self, server_address, crazyflie_uri, shared_command, shared_command_lock, command_frequency):
         """
         Initializes this object and prepares it for connection.
         :param server_address: The address of the cfzmq server.
         :param crazyflie_uri: The uri of the crazyflie we want to connect to.
         """
         threading.Thread.__init__(self)
-        self.daemon = True
 
         self.keep_running_lock = threading.Lock()
         self.keep_running = True
@@ -76,6 +27,10 @@ class ZMQControlConnector(threading.Thread):
 
         self.command_socket = None
         self.control_socket = None
+
+        self.shared_command = shared_command
+        self.shared_command_lock = shared_command_lock
+        self.command_frequency = command_frequency
 
     def get_keep_running(self):
         with self.keep_running_lock:
@@ -108,8 +63,8 @@ class ZMQControlConnector(threading.Thread):
         while not self.connect_to_cf() and keep_connecting:
             keep_connecting = self.get_keep_running()
 
-            print("Connection to crazyflie was unsuccessful, trying again in 2 seconds...")
-            time.sleep(2)
+            print("Connection to crazyflie was unsuccessful, trying again in {} seconds...".format(cnf.cf_connection_repeat_pause))
+            time.sleep(cnf.cf_connection_repeat_pause)
 
     def close_cf_connection(self):
         """Close the crazyflie connection on the cfzmq server side."""
@@ -166,13 +121,13 @@ class ZMQControlConnector(threading.Thread):
 
     def send_cmd(self, tick):
         """Send a control command to the crazyflie. The control socket has to be connected."""
-        with shared_command_lock:
-            self.control_socket.send_json(shared_cmd)
+        with self.shared_command_lock:
+            self.control_socket.send_json(self.shared_command)
 
             # Update status message of last sent command.
             if tick % 10 == 0:
                 print("\033[2K", end='')
-                print("\r  \rSent: " + str(shared_cmd), end='')
+                print("\r  \rSent: " + str(self.shared_command), end='')
 
     def start_cmd_sending_loop(self):
         """Start a continuous loop of sending control commands until it is stopped via self.stop_cmd_sending_loop()."""
@@ -184,7 +139,7 @@ class ZMQControlConnector(threading.Thread):
         self.set_keep_running(keep_running)
 
         while keep_running:
-            time.sleep(1 / command_frequency)
+            time.sleep(1 / self.command_frequency)
 
             self.send_cmd(tick)
             tick += 1
@@ -207,16 +162,21 @@ class ZMQControlConnector(threading.Thread):
             self.open_sockets()
         except zmq.ZMQError as e:
             print(e)
-            print("Could not establish connections to the cfzmq server.")
+            print("Could not establish connections to the cfzmq server.\n")
             return
 
         # Connecting to the crazyflie via zmq messages.
-        try:
-            self.loop_till_connect()
-        except zmq.ZMQError as e:
-            print(e)
-            print("Could not (re-)open connection to crazyflie on cfzmq server side due to a zmq error.")
-            return
+        connected = False
+        while not connected:
+            try:
+                self.loop_till_connect()
+                connected = True
+            except zmq.ZMQError as e:
+                print(e)
+                print(
+                    "Could not (re-)open connection to crazyflie on cfzmq server side due to a zmq error. "
+                    "Trying again in {} seconds...\n".format(cnf.zmq_connection_repeat_pause))
+                time.sleep(cnf.zmq_connection_repeat_pause)
 
         time.sleep(0.3)
 
@@ -244,102 +204,4 @@ class ZMQControlConnector(threading.Thread):
             print(e)
             print("Disconnecting the crazyflie failed due to a zmq error.")
 
-        print("Exiting zmq control connection thread.")
-
-
-class JoystickReader:
-
-    def __init__(self, device):
-        self.device = device
-
-    def read_joystick(self):
-        for event in self.device.read_loop():
-            # The following are the event codes for a XBOX one Controller. It might have to be adjusted for other controllers.
-            with shared_command_lock:
-                if event.type == ecodes.EV_ABS:
-
-                    if event.code == ecodes.ABS_X:  # Left x-axis.
-                        roll = int(event.value / 32768.0 * max_roll_deg)
-                        yvel = event.value / 32768.0 * max_yv
-
-                        shared_cmd["roll"] = roll if abs(roll) > cut_off_roll else 0
-                        shared_cmd["yvel"] = -yvel if abs(yvel) > cut_off_yv else 0
-
-                    if event.code == ecodes.ABS_Y:  # Left y-axis
-                        pitch = int(event.value / 32768.0 * max_pitch_deg)
-                        xvel = event.value / 32768.0 * max_xv
-
-                        shared_cmd["pitch"] = -pitch if abs(pitch) > cut_off_pitch else 0
-                        shared_cmd["xvel"] = -xvel if abs(xvel) > cut_off_xv else 0
-
-                    if event.code == ecodes.ABS_RX:  # Right x-axis
-                        yaw = int(event.value / 32768.0 * max_yaw_rate_deg)
-
-                        shared_cmd["yaw"] = yaw if abs(yaw) > cut_off_yaw else 0
-
-                    if event.code == ecodes.ABS_RZ:  # Right backside trigger
-                        thrust = int(event.value / 1024.0 * max_thrust)
-                        z = event.value / 1024.0 * max_z
-
-                        shared_cmd["thrust"] = thrust
-                        shared_cmd["z"] = z
-
-                if event.type == ecodes.EV_KEY:
-                    if event.code == ecodes.BTN_Y and event.value is 1:  # Switch hover mode
-                        shared_cmd["hovermode"] = not shared_cmd["hovermode"]
-
-
-def main():
-    devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
-
-    for device in devices:
-        print(device.fn, device.name, device.phys)
-
-    if len(devices) is 0:
-        print("No input device found. Exiting.")
-        sys.exit(1)
-
-    if len(devices) is 1:
-        print("Found only one device. Using it as default.")
-        device_idx = 0
-
-    if len(devices) > 1:
-        device_idx = input("Enter index of device:")
-
-    device = devices[device_idx]
-
-    js_reader = JoystickReader(device)
-
-    print("Selected device: " + str(device))
-
-    # print(device.capabilities(verbose=True))
-
-    # Initialize and start cfzmq connector thread which continously sends our control commands.
-    cfzmq_connector = ZMQControlConnector(SRV_ADDR, CF_URI)
-    cfzmq_connector.start()
-
-    keep_reading = True
-
-    while keep_reading:
-        try:
-            js_reader.read_joystick()
-        except KeyboardInterrupt:
-            if cfzmq_connector.is_alive():
-                cfzmq_connector.stop_cmd_sending_loop()
-            print("Closing zmq joystick controller.")
-        finally:
-            print("Stopping zmq thread...")
-            cfzmq_connector.stop_cmd_sending_loop()
-            cfzmq_connector.join(6)
-            if cfzmq_connector.is_alive():
-                print("Failed to stop zmq thread properly.")
-            else:
-                print("Stopped zmq thread.")
-
-            keep_reading = False
-            print("Exiting program")
-            sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
+        # print("Exiting zmq control connection thread.")
