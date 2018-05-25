@@ -41,5 +41,6 @@ python3 logging_api_sample/test.py
 1. run cfzmq from the other repo
 2. start logging
 3. start logging_api_sample
+4. Check that start logging prints the log messages in the console - it does not create a csv yet and i did not update the variables
 
 **NOTE that the config.json must be in the current working directory i.e. the directory you call python from.**
