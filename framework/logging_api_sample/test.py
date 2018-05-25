@@ -1,4 +1,4 @@
-from interface import LoggingAPI
+from logging_api import LoggingAPI
 import zmq
 
 context = zmq.Context()
