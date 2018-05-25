@@ -23,6 +23,10 @@ python3 logging/log.py
 
 Contains the API for the logging program. Communication works through zmq via a server client configuration.
 
+Install with 
+
+`pip install -e ./logging_api`
+
 # logging_api_sample
 
 Sample usage of the API
