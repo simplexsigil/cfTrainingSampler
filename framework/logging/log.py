@@ -32,10 +32,24 @@ else:
 sleep(0.3)
 #controlConn.unlockCF()
 
-loggingPort = config["logging"]["zmq"]["port"]
-
-# Configure Logging Node
+loggingPort = config["logging"]["zmqPorts"]["log"]
 from nodes.LogReceiver import LoggingZmqPublisher, LogReceiverNode
 loggingPublisher = LoggingZmqPublisher(zmqContext, zmqAddress, loggingPort)
-loggingNode = LogReceiverNode(clientConn, loggingConn, config["logging"]["variables"], config["logging"]["name"], config["logging"]["frequency"], loggingPublisher)
-loggingNode.start()
+
+# Configure Logging Node
+def receiverFactory():
+    loggingNode = LogReceiverNode(clientConn, loggingConn, config["logging"]["variables"], config["logging"]["name"], config["logging"]["frequency"], loggingPublisher)
+    return loggingNode
+
+def printNodeFactory():
+    from nodes.LogPrinter import LogPrinterNode
+    from cfwrapper.connections import ZmqSubscribeConnection
+    loggingListener = ZmqSubscribeConnection(zmqContext, zmqAddress, loggingPort)
+    listenerNode = LogPrinterNode(loggingListener)
+    return listenerNode
+
+from nodes.LogController import LogController, ControllerHost
+
+controllerHost = ControllerHost(zmqContext, zmqAddress, config["logging"]["zmqPorts"]["controller"])
+controller = LogController(controllerHost, receiverFactory, [printNodeFactory])
+controller.start()

@@ -12,8 +12,9 @@
         ],
         "frequency": 100,
         "name": "LoggingConfig",
-        "zmq": {
-            "port": 3000
+        "zmqPorts": {
+            "log": 3000,
+            "controller": 3001
         }
     }
 }
