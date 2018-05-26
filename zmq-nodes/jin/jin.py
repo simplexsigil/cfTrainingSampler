@@ -69,6 +69,7 @@ def main():
             js_reader.set_keep_reading(False)
 
             # We do not wait for joystick reader, since it does not have dangling connections opened.
+            # Also it is currently blocking in loop waiting for input events (blocking io) and does not join.
 
             cfzmq_connector.join(5)
 
