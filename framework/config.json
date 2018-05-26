@@ -1,0 +1,20 @@
+{
+    "zmq": {
+        "url": "tcp://localhost"
+    },
+    "crazyFly": {
+        "url": "radio://0/85/2M"
+    },
+    "logging": {
+        "variables": [
+            "pm.vbat",
+            "stabilizer.roll"
+        ],
+        "frequency": 100,
+        "name": "LoggingConfig",
+        "zmqPorts": {
+            "log": 3000,
+            "controller": 3001
+        }
+    }
+}
