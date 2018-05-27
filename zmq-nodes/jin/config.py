@@ -2,9 +2,15 @@
 
 # The address of the cfzmq server to connect to.
 SRV_ADDR = "tcp://127.0.0.1"
+CFZMQ_CONTROL_PORT = 2004
+
 
 # The address of the crazyflie we connect to.
 CF_URI = "radio://0/80/2M"
+
+LOG_SRV_ADDR = "tcp://127.0.0.1"
+LOG_CONTROL_PORT = 3001
+
 
 # Limits for control values which make flying for a human pilot easier.
 max_pitch_deg = 30

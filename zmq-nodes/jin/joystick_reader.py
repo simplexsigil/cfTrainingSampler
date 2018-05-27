@@ -65,6 +65,10 @@ class JoystickReader(threading.Thread):
                     if event.code == ecodes.BTN_Y and event.value is 1:  # Switch hover mode
                         self.shared_command["hovermode"] = not self.shared_command["hovermode"]
 
+                    if event.code == ecodes.BTN_X and event.value is 1:  # Switch logging on/off
+                        self.shared_command["is_logging"] = not self.shared_command["is_logging"]
+
+
     def run(self):
         while self.get_keep_reading():
             self.read_joystick()
