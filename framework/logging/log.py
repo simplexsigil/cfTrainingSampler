@@ -58,5 +58,5 @@ def csvNodeFactory():
 from nodes.LogController import LogController, ControllerHost
 
 controllerHost = ControllerHost(zmqContext, zmqAddress, config["logging"]["zmqPorts"]["controller"])
-controller = LogController(controllerHost, receiverFactory, [csvNodeFactory])
+controller = LogController(controllerHost, receiverFactory, [csvNodeFactory, printNodeFactory])
 controller.start()
