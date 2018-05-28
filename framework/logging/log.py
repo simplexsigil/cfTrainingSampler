@@ -48,8 +48,15 @@ def printNodeFactory():
     listenerNode = LogPrinterNode(loggingListener)
     return listenerNode
 
+def csvNodeFactory():
+    from nodes.LogCSV import LogCSVNode
+    from cfwrapper.connections import ZmqSubscribeConnection
+    loggingListener = ZmqSubscribeConnection(zmqContext, zmqAddress, loggingPort)    
+    logCsv = LogCSVNode("data", "%name%_%d%.csv", loggingListener)
+    return logCsv
+
 from nodes.LogController import LogController, ControllerHost
 
 controllerHost = ControllerHost(zmqContext, zmqAddress, config["logging"]["zmqPorts"]["controller"])
-controller = LogController(controllerHost, receiverFactory, [printNodeFactory])
+controller = LogController(controllerHost, receiverFactory, [csvNodeFactory])
 controller.start()
