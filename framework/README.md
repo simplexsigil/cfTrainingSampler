@@ -16,6 +16,7 @@ virtualenv logging_env
 source ./logging_env/bin/activate
 pip install -r requirements.txt
 cd ..;
+mkdir data
 python3 logging/log.py
 ```
 
