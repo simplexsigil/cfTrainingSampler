@@ -35,8 +35,6 @@ class LogCSVNode(threading.Thread):
             self.writeData(file, data, fileName)
 
     def writeData(self, file, data, fileName):
-        print("CSV: ")
-        print(data)
         if data["event"] == "data":
             outputString = str(data["timestamp"])
             columnString = "timestamp"
