@@ -1,6 +1,6 @@
 import threading
 
-class LoggingListenerNode(threading.Thread):
+class LogPrinterNode(threading.Thread):
     
     def __init__(self, loggingSubscriber):
         super().__init__()

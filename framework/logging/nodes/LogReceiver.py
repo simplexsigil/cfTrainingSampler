@@ -1,14 +1,15 @@
 import threading
 import zmq
 
-class LoggingNode(threading.Thread):
+class LogReceiverNode(threading.Thread):
 
-    def __init__(self, clientConn, loggingConn, variables, loggingName, loggingPublisher):
+    def __init__(self, clientConn, loggingConn, variables, loggingName, loggingFrequency, loggingPublisher):
         super().__init__()
         self.clientConn = clientConn
         self.loggingConn = loggingConn
         self.loggingPublisher = loggingPublisher
         self.variables = variables
+        self.loggingFrequency = loggingFrequency
         self.name = loggingName
         self.configuredLogging = False
         self.log  = False
@@ -19,7 +20,7 @@ class LoggingNode(threading.Thread):
             "cmd": "log",
             "action": "create",
             "name": name,
-            "period": 10,
+            "period": 1000 / float(self.loggingFrequency),
             "variables": variables
         }
 
@@ -67,7 +68,7 @@ class LoggingNode(threading.Thread):
         self._startLogging()
         self._log()
 
-from host import ZmqHost
+from cfwrapper import ZmqHost
 class LoggingZmqPublisher(ZmqHost):
 
     def __init__(self, zmqContext, zmqServerAddress, port):
