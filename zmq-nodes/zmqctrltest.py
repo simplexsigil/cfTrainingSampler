@@ -1,9 +1,11 @@
+### this script will power on the motors, but the cflie will still stay on the ground
+
 import zmq
 import time
 import sys
 
 SRV_ADDR = "tcp://127.0.0.1"
-CF_URI = "radio://0/80/2M"
+CF_URI = "radio://0/10/2M"
 context = zmq.Context()
 
 client_conn = context.socket(zmq.REQ)
@@ -14,6 +16,9 @@ ctrl_conn.connect("{}:2004".format(SRV_ADDR))
 
 time.sleep(2)
 
+
+##################################################
+# scan and output all cf interfaces 
 print("Scanning for Crazyflies ...", end=' ')
 scan_cmd = {
     "version": 1,
@@ -25,6 +30,9 @@ print("done!")
 for i in resp["interfaces"]:
     print("\t{} - {}".format(i["uri"], i["info"]))
 
+
+####################################################
+# connect the cflie using URI
 connect_cmd = {
     "version": 1,
     "cmd": "connect",
@@ -38,6 +46,8 @@ if resp["status"] != 0:
     sys.exit(1)
 print("done!")
 
+##############################################
+# needs this to make the crazyflie fly, to unlock the control mechanism
 
 _cmd = {
     "version": 1,
@@ -52,11 +62,19 @@ for _ in range(0,10):
     ctrl_conn.send_json(_cmd)
     print("Sent: " + str(_cmd))
 
-_cmd["thrust"] = 30000
+_cmd["thrust"] = 20000
 
+##############################################
+# power on the motors, cflie shouldn't be able to "fly" yet
 i = 0
-
-while True:
+for i in range(0, 20):
     time.sleep(0.1)
     ctrl_conn.send_json(_cmd)
-    print("Sent: " + str(_cmd))
+    print("Sent " + str(i) + ": " + str(_cmd))
+
+# land
+_cmd["thrust"] = 0
+ctrl_conn.send_json(_cmd)
+
+
+print("Reached end of script")

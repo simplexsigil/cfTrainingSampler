@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Origin: crazyflie-python-client/examples/zmqsrvtest.py
+# This script is just a rewritten version can therefore can be skipped
 
 """
 ZMQ server test application. Use CTRL-C to end the application.
@@ -97,7 +98,7 @@ class _CtrlThread(Thread):
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 SRV_ADDR = "tcp://127.0.0.1"
-CF_URI = "radio://0/80/2M"
+CF_URI = "radio://0/10/2M"
 
 context = zmq.Context()
 client_conn = context.socket(zmq.REQ)
@@ -128,6 +129,7 @@ param_thread.start()
 conn_thread = _ConnThread(conn_conn)
 conn_thread.start()
 
+##### try unknown command, expected fail
 print("Trying unknown command ...", end=' ')
 scan_cmd = {
     "version": 1,
@@ -140,6 +142,7 @@ if resp["status"] != 0:
 else:
     print("done!")
 
+##### scan cfs
 print("Scanning for Crazyflies ...", end=' ')
 scan_cmd = {
     "version": 1,
@@ -151,6 +154,7 @@ print("done!")
 for i in resp["interfaces"]:
     print("\t{} - {}".format(i["uri"], i["info"]))
 
+##### connect to cf with CF_URI
 connect_cmd = {
     "version": 1,
     "cmd": "connect",
@@ -199,6 +203,7 @@ if resp["status"] == 0:
 else:
     print("fail!")
 
+##### set parameter
 param_cmd = {
     "version": 1,
     "cmd": "param",

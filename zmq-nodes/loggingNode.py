@@ -1,33 +1,9 @@
 # -*- coding: utf-8 -*-
-#
-#     ||          ____  _ __
-#  +------+      / __ )(_) /_______________ _____  ___
-#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
-#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
-#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
-#
-#  Copyright (C) 2015 Bitcraze AB
-#
-#  Crazyflie Nano Quadcopter Client
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA  02110-1301, USA.
+# Origin: crazyflie-python-client/examples/zmqsrvtest.py
+# Basically like zmqtest.py without _ParamThread and Scan
 
 """
 ZMQ server test application. Use CTRL-C to end the application.
-
 NOTE! If connected to a Crazyflie this will power on the motors!
 """
 
@@ -108,7 +84,7 @@ class _CtrlThread(Thread):
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 SRV_ADDR = "tcp://127.0.0.1"
-CF_URI = "radio://0/85/2M"
+CF_URI = "radio://0/10/2M"
 
 context = zmq.Context()
 client_conn = context.socket(zmq.REQ)
@@ -136,6 +112,7 @@ log_thread.start()
 conn_thread = _ConnThread(conn_conn)
 conn_thread.start()
 
+# Connect 
 connect_cmd = {
     "version": 1,
     "cmd": "connect",
@@ -149,14 +126,14 @@ if resp["status"] != 0:
     sys.exit(1)
 print("done!")
 
-# Do logging
+# Output all loggable variables
 print("Loggable variables")
 for group in resp["log"]:
     print("\t{}".format(group))
     for name in resp["log"][group]:
         print("\t  {} ({})".format(name,
                                    resp["log"][group][name]["type"]))
-
+# Create log block
 log_cmd = {
     "version": 1,
     "cmd": "log",
