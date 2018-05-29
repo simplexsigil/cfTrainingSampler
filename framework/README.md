@@ -49,3 +49,11 @@ python3 logging_api_sample/test.py
 4. Check that start logging prints the log messages in the console - it does not create a csv yet and i did not update the variables
 
 **NOTE that the config.json must be in the current working directory i.e. the directory you call python from.**
+
+## Install all packages & dependencies (global)
+See setup_global.sh
+
+python -m pip install -e ./cfwrapper
+python -m pip install -r ./logging/requirements.txt
+python -m pip install -e ./logging_api
+python -m pip install -r ./logging_api_sample/requirements.txt
