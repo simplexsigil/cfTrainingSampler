@@ -92,8 +92,11 @@ def main():
     quit = False
 
     while not quit:
+        minutes = 0
         try:
+            print("[{time}] jin is running since {minutes} minutes.".format(time=time.time(), minutes=minutes))
             time.sleep(60)
+            minutes += 1
         except KeyboardInterrupt:
             quit = True
             cfzmq_connector.set_keep_running(False)
@@ -102,7 +105,6 @@ def main():
 
             # We do not wait for joystick reader, since it does not have dangling connections opened.
             # Also it is currently blocking in loop waiting for input events (blocking io) and does not join.
-
             cfzmq_connector.join(5)
             log_connector.join(5)
 
