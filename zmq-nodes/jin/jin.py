@@ -22,7 +22,8 @@ shared_cmd = {
     "xvel": 0,
     "yvel": 0,
     "z": 0,
-    "is_logging": False
+    "is_logging": False,
+    "action": "stop_logging"
 }
 
 # For synchronization between joystick input thread and and zmq control sender thread.

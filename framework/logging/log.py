@@ -25,7 +25,8 @@ else:
 
 response = clientConn.connectToCF()
 if response["status"] != 0:
-    raise Exception("Failed to connect to CF: " + response["msg"])
+    print("Connection to CF could apparently not be made.")
+    # raise Exception("Failed to connect to CF: " + response["msg"])
 else:
     print("Connected to cf!") 
 

@@ -30,18 +30,23 @@ class LogController(threading.Thread):
     def run(self):
         while self.running:
             data = self.controllerHost.receiveData();
+            print(data)
             if data["action"] == "start_logging":
+                print("Logging is started.")
                 self.logReceiverNode.start();
                 for node in self.logOutputNodes:
                     node.start();
                 self.controllerHost.sendData({ "success": True})
-            elif data["action"] == "stop_logging": 
+            elif data["action"] == "stop_logging":
+                print("Logging is stopped.")
                 self.logReceiverNode.stop()
                 for node in self.logOutputNodes:
                     node.stop()
                 for node in self.logOutputNodes:
-                    node.join()
-                self.logReceiverNode.join()
+                    if node.isAlive():
+                        node.join()
+                if self.logReceiverNode.isAlive():
+                    self.logReceiverNode.join()
                 self._initNodes()
                 self.controllerHost.sendData({ "success": True})
             elif data["action"] == "info":

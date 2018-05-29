@@ -47,14 +47,13 @@ class LogConnector(threading.Thread):
 
     def open_socket(self):
         # Request-response socket.
-        self.log_control_socket = self.context.socket(zmq.REQ)
+        self.log_control_socket = self.context.socket(zmq.PUSH)
         self.log_control_socket.setsockopt(zmq.RCVTIMEO, 5000)
         self.log_control_socket.setsockopt(zmq.SNDTIMEO, 5000)
         self.log_control_socket.connect("{}:{}".format(self.host, self.port))
 
     def start_cmd_sending_loop(self):
         """Start a continuous loop of sending control commands until it is stopped via self.stop_cmd_sending_loop()."""
-        tick = 0
 
         keep_running = True
 
@@ -65,8 +64,7 @@ class LogConnector(threading.Thread):
             time.sleep(1 / self.command_frequency)
 
             if self.update_log_mode():
-                self.send_log_mode(tick)
-            tick += 1
+                self.send_log_mode()
 
             # Thread safe access to run indicator.
             keep_running = self.get_keep_running()
