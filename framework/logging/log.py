@@ -23,12 +23,15 @@ if response["status"] != 0:
 else:
     print("Disconnected old clients from CF")
 
-response = clientConn.connectToCF()
-if response["status"] != 0:
-    print("Connection to CF could apparently not be made.")
-    # raise Exception("Failed to connect to CF: " + response["msg"])
-else:
-    print("Connected to cf!") 
+while True:
+    response = clientConn.connectToCF()
+    if response["status"] != 0:
+        print("Failed to connect to CF: " + response["msg"])
+        print("Waiting 3 seconds before trying to reconnect!");
+        sleep(3);
+    else:
+        print("Connected to cf!") 
+        break
 
 sleep(0.3)
 #controlConn.unlockCF()
