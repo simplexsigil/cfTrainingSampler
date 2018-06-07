@@ -7,8 +7,22 @@
     },
     "logging": {
         "variables": [
-            "pm.vbat",
-            "stabilizer.roll"
+            "kalman.stateX",
+            "kalman.stateY",
+            "kalman.stateZ",
+            "stabilizer.yaw",
+            "stabilizer.pitch",
+            "stabilizer.roll",
+            "gyro.x",
+            "gyro.y",
+            "gyro.z",
+            "kalman.statePX",
+            "kalman.statePY",
+            "kalman.statePZ",
+            "controller.yaw",
+            "controller.pitch",
+            "controller.roll",
+            "controller.actuatorThrust"
         ],
         "frequency": 100,
         "name": "LoggingConfig",

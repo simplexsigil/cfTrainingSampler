@@ -9,10 +9,10 @@ print("Start Logging: " + str(resp));
 
 import time
 
-time.sleep(5)
+time.sleep(1000)
 
-resp = api.stopLogging()
-print("Stopped logging: " + str(resp));
+#resp = api.stopLogging()
+#print("Stopped logging: " + str(resp));
 
-resp = api.getInfo()
-print("Info: " + str(resp))
+#resp = api.getInfo()
+#print("Info: " + str(resp))

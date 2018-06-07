@@ -1,5 +1,8 @@
 import threading
 import zmq
+import math
+
+VARIABLES_PER_BLOCK = 4.0
 
 class LogReceiverNode(threading.Thread):
 
@@ -14,45 +17,60 @@ class LogReceiverNode(threading.Thread):
         self.configuredLogging = False
         self.log  = False
 
-    def _getLoggingConfig(self, name, variables):
-            return {
-            "version": 1,
-            "cmd": "log",
-            "action": "create",
-            "name": name,
-            "period": 1000 / float(self.loggingFrequency),
-            "variables": variables
-        }
+    def _getLoggingConfigs(self, name, variables):
+        configs = [];
+        logConfCount = math.ceil(len(variables) / VARIABLES_PER_BLOCK)
+        for i in range(0, logConfCount):
+            configs.append({
+                "version": 1,
+                "cmd": "log",
+                "action": "create",
+                "name": name + "_" + str(int(i % VARIABLES_PER_BLOCK)),
+                "period": 1000 / float(self.loggingFrequency),
+                "variables": variables[int(VARIABLES_PER_BLOCK * i):min(int(VARIABLES_PER_BLOCK * i+VARIABLES_PER_BLOCK), len(variables))]
+            })
+        return configs
 
     def _getStartCommand(self, name):
         return {
             "version": 1,
             "cmd": "log",
             "action": "start",
-            "name": self.name
+            "name": name
         }
 
     def _setUpLogging(self):
-        config = self._getLoggingConfig(self.name, self.variables)
+        configs = self._getLoggingConfigs(self.name, self.variables)
+        print("Configs: ")
+        print(configs)
         self.configuredLogging = True
-        response = self.clientConn.sendCommand(config)
-        if response["status"] != 0:
-            print(response)
-            raise Exception("Failed to set up logging!")
-        else:
-            print("Setup logging...")
-            return response
+        for config in configs:
+            response = self.clientConn.sendCommand(config)
+            if response["status"] != 0:
+                print(response)
+                raise Exception("Failed to set up logging!")
+            else:
+                print("Setup logging for " + str(config["variables"]))
+        return { "status": 0 }
 
     def _startLogging(self):
         if not self.configuredLogging:
             raise Exception("You must set up logging first!")
-        response = self.clientConn.sendCommand(self._getStartCommand(self.name))
-        if response["status"] != 0:
-            print(response)
-            raise Exception("Failed to start logging!")
-        else:
-            print("Started logging....")
-            self.log = True
+
+        for i in range(0, len(self._getLoggingConfigs(self.name, self.variables))):
+            name = self.name + "_" + str(i)
+            startCommand = self._getStartCommand(self.name + "_" + str(i));
+            print("Start Command: ")
+            print("Name: " + name)
+            print(startCommand)
+            response = self.clientConn.sendCommand(startCommand)
+            if response["status"] != 0:
+                print(response)
+                self.log = False
+                raise Exception("Failed to start logging!")
+            else:
+                print("Started logging....")
+                self.log = True
             
     def stop(self):
         self.log = False
@@ -64,8 +82,11 @@ class LogReceiverNode(threading.Thread):
             self.loggingPublisher.publish(log)
 
     def run(self):
+        print("Starting setup");
         self._setUpLogging()
+        print("Set up logging!");
         self._startLogging()
+        print("started logging")
         self._log()
 
 from cfwrapper import ZmqHost

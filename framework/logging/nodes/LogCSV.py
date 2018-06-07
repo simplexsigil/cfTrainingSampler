@@ -14,6 +14,7 @@ class LogCSVNode(threading.Thread):
         self.files = { }
         self.firstLine = {}
         self.outputDirectory = outputDirectory
+        self.fileNames = {}
 
     def stop(self):
         self.read = False
@@ -22,15 +23,24 @@ class LogCSVNode(threading.Thread):
         print("Started listener node")
         while self.read:
             data = self.loggingSubscriber.receiveData();
-            fileName = self.makeFileName(data["name"])
-            if fileName not in self.files:
-                try:
-                    file = self.createFile(fileName)
-                except Exception:
-                    print("Failed to create file for " + fileName)
-                    continue;
-            else:
+            baseFileName = self.makeFileName(data["name"])
+            file = None
+            if data["name"] in self.fileNames:
+                file = self.files[self.fileNames[data["name"]]]
+            else: 
+                i = 0
+                fileName = baseFileName + "_" + str(i) + ".csv"
+                while fileName not in self.files:
+                    try:
+                        fileName = baseFileName + "_" + str(i) + ".csv"
+                        file = self.createFile(fileName)
+                    except Exception:
+                        print("Failed to create file for " + fileName)
+                    i += 1
+
                 file = self.files[fileName]
+                self.fileNames[data["name"]] = fileName
+                print("Using file name " + fileName + " for logging config " + data["name"]);
 
             self.writeData(file, data, fileName)
 
@@ -47,10 +57,13 @@ class LogCSVNode(threading.Thread):
             file.write(outputString + "\n")
         
     def makeFileName(self, configName):
-        return self.fileNameFormat.replace("%d%", str(datetime.datetime.now().date())).replace("%name%", configName)
+        return self.fileNameFormat.replace("%d%", str(datetime.datetime.now().date())).replace("%name%", configName);
 
     def createFile(self, fileName):
-        self.files[fileName] = open(os.path.join(self.outputDirectory, fileName), "a")
+        file = os.path.join(self.outputDirectory, fileName)
+        if (os.path.isfile(file)):
+            raise Exception("File " + fileName + " exists")
+        self.files[fileName] = open(file, "a")
         test = open(os.path.join(self.outputDirectory, fileName), "r")
         self.firstLine[fileName] = test.readline() == ""
         return self.files[fileName]
